@@ -1,4 +1,4 @@
-DeviceMind for Mobile 📱 (Final Architecture)
+DCR 📱 (Final Architecture)
 독자적인 알고리즘, 실시간 시장 분석, 그리고 당신의 선택을 더한 초개인화 스마트폰 추천
 
 💡 프로젝트 개요
