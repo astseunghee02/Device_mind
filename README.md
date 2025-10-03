@@ -42,7 +42,6 @@ Plaintext
      ↓
 [📱 Mobile App]
   8. Displays the final recommendation that matches the user's criteria.
-  9. 
 🛠️ 기술 스택 (Tech Stack)
 컴포넌트	기술
 📱 모바일 앱	<img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white"> or <img src="https://img.shields.io/badge/React%20Native-61DAFB?style=for-the-badge&logo=react&logoColor=black">
@@ -52,7 +51,6 @@ Plaintext
 
 Sheets로 내보내기
 🚀 개발 로드맵 (Development Roadmap)
-
 👤 1단계: 사용자 프로파일링 알고리즘 개발
 
 🌐 2단계: 시장 데이터 MCP 서버 구축 (가격, 스펙, 크기, 무게 데이터 포함)
