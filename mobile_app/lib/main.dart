@@ -1,6 +1,8 @@
 import 'package.dart';
+import 'dart:convert'; // JSON 인코딩을 위해 추가
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http; // http 패키지 임포트
 
 void main() {
   runApp(const MyApp());
@@ -34,27 +36,68 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   static const platform = MethodChannel('com.example.devicemind/devicedata');
-  String _deviceData = 'No data yet. Press a button to fetch data.';
+  
+  // 수집된 데이터를 저장할 변수
+  Map<String, dynamic>? _collectedData;
+  String _statusText = 'No data yet. Press a button to fetch data.';
 
   // 네이티브 코드를 호출하여 디바이스 데이터를 가져오는 함수
-  // 이제 'interval' 파라미터를 받아서 네이티브에 전달합니다.
   Future<void> _getDeviceData(String interval) async {
-    String deviceData;
     try {
-      // invokeMethod를 호출할 때, 두 번째 인자로 파라미터를 Map 형태로 전달합니다.
       final result = await platform.invokeMethod('getDeviceData', {'interval': interval});
-      // 결과 데이터를 예쁘게 포맷팅합니다.
-      deviceData = _formatResult(result);
+      setState(() {
+        _collectedData = Map<String, dynamic>.from(result);
+        _statusText = _formatResult(_collectedData);
+      });
     } on PlatformException catch (e) {
-      deviceData = "Failed to get device data: '${e.message}'.";
+      setState(() {
+        _statusText = "Failed to get device data: '${e.message}'.";
+      });
     }
-
-    setState(() {
-      _deviceData = deviceData;
-    });
   }
 
-  // 네이티브에서 받은 Map 데이터를 사람이 읽기 좋은 문자열로 변환합니다.
+  // 수집된 데이터를 서버로 업로드하는 함수
+  Future<void> _uploadData() async {
+    if (_collectedData == null) {
+      setState(() {
+        _statusText = 'No data to upload. Please fetch data first.';
+      });
+      return;
+    }
+
+    // 중요: 안드로이드 에뮬레이터에서 localhost(127.0.0.1)는 에뮬레이터 자신을 가리킵니다.
+    //       개발용 PC의 localhost에 접속하려면 10.0.2.2를 사용해야 합니다.
+    //       실제 디바이스에서 테스트하려면, PC의 실제 IP 주소를 입력하세요. (예: http://192.168.1.5:8000/data/)
+    const serverUrl = 'http://10.0.2.2:8000/data/';
+
+    setState(() {
+      _statusText = 'Uploading data to server...';
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse(serverUrl),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode(_collectedData), // 데이터를 JSON 문자열로 인코딩
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _statusText = 'Upload successful!\nServer response: ${response.body}';
+        });
+      } else {
+        setState(() {
+          _statusText = 'Upload failed. Status code: ${response.statusCode}\nResponse: ${response.body}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _statusText = 'Error uploading data: $e';
+      });
+    }
+  }
+
+  // Map 데이터를 사람이 읽기 좋은 문자열로 변환합니다.
   String _formatResult(dynamic result) {
     if (result is Map) {
       final battery = result['batteryPerformance'];
@@ -69,7 +112,6 @@ class _MyHomePageState extends State<MyHomePage> {
 - Voltage: ${battery['voltage']}V
 ''';
 
-      // 사용 시간(ms)을 분 단위로 변환하고, 상위 5개 앱만 표시합니다.
       usage.sort((a, b) => b['totalTimeInForeground'].compareTo(a['totalTimeInForeground']));
       final top5Usage = usage.take(5);
 
@@ -92,18 +134,17 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             const Text(
               'Device Data:',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            // 데이터를 보여줄 스크롤 가능한 영역
             Expanded(
               child: SingleChildScrollView(
                 child: Text(
-                  _deviceData,
+                  _statusText,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
@@ -113,20 +154,18 @@ class _MyHomePageState extends State<MyHomePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(
-                  onPressed: () => _getDeviceData('daily'),
-                  child: const Text('Daily'),
-                ),
-                ElevatedButton(
-                  onPressed: () => _getDeviceData('weekly'),
-                  child: const Text('Weekly'),
-                ),
-                ElevatedButton(
-                  onPressed: () => _getDeviceData('monthly'),
-                  child: const Text('Monthly'),
-                ),
+                ElevatedButton(onPressed: () => _getDeviceData('daily'), child: const Text('Daily')),
+                ElevatedButton(onPressed: () => _getDeviceData('weekly'), child: const Text('Weekly')),
+                ElevatedButton(onPressed: () => _getDeviceData('monthly'), child: const Text('Monthly')),
               ],
-            )
+            ),
+            const SizedBox(height: 10),
+            // 서버로 데이터를 업로드하는 버튼
+            ElevatedButton(
+              onPressed: _uploadData, 
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: const Text('Upload to Server'),
+            ),
           ],
         ),
       ),

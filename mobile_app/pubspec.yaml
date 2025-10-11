@@ -8,6 +8,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: ^0.13.4 # http 패키지 추가
 
 dev_dependencies:
   flutter_test:
