@@ -48,11 +48,3 @@ Thumbs.db
 # Cache
 .cache/
 *.cache
-
-# TypeScript
-node_modules/
-dist/
-*.tsbuildinfo
-
-# Old/backup files
-*.old
